@@ -57,8 +57,8 @@ function playerIdFor(name) {
   }
   return id;
 }
-const ADJ = ["Amber","Azure","Bold","Bright","Calm","Cobalt","Copper","Crimson","Dapper","Dusky","Ember","Fabled","Gentle","Gilded","Hidden","Hushed","Indigo","Ivory","Jade","Keen","Lucky","Lunar","Misty","Mystic","Nimble","Noble","Opal","Quiet","Russet","Sage","Silver","Smoky","Solar","Swift","Tawny","Velvet","Violet","Wandering","Wise","Zesty"];
-const NOUN = ["Badger","Comet","Crane","Falcon","Fox","Hare","Hawk","Heron","Ibis","Jackal","Kestrel","Lark","Lynx","Magpie","Marten","Moth","Newt","Oracle","Otter","Owl","Panther","Pike","Quail","Raven","Robin","Seer","Sparrow","Stag","Stoat","Swift","Tern","Tiger","Vole","Wolf","Wren","Yak","Zebra","Sphinx","Phoenix","Mantis"];
+const ADJ = ["Clairvoyant","Cosmic","Psychic","Spooky","Moonlit","Telepathic","Uncanny","Prophetic","Starry-Eyed","Mysterious","Enchanted","Twinkly","Dreamy","Mischievous","Whispering","Glowing","Cryptic","Velvet","Midnight","Dazzling","Wandering","Bewildered","Lucky","Peculiar","Shimmering","Bashful","Sneaky","Wobbly","Galactic","Haunted","Fabulous","Curious","Daydreaming","Sparkly","Intuitive","Spellbound","Gloomy","Jolly","Hocus-Pocus","Far-Seeing"];
+const NOUN = ["Hedgehog","Soothsayer","Crystal Ball","Tea Leaf","Oracle","Badger","Wizard","Owl","Pixie","Tarot Cat","Mystic Moth","Fortune Cookie","Seer","Pigeon","Ouija Board","Goblin","Sage","Raven","Teapot","Dowsing Rod","Comet","Sphinx","Gnome","Druid","Ferret","Phantom","Crumpet","Banshee","Stargazer","Hamster","Augur","Narwhal","Medium","Moon Rabbit","Wisp","Penguin","Magic 8-Ball","Toad","Cauldron","Mind Reader"];
 function pseudonym(seed) {
   let h = 2166136261;
   for (const ch of String(seed)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
