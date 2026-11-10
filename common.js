@@ -39,8 +39,37 @@ function saveLocal(entry) {
     return true;
   } catch (e) { return false; }
 }
+// ---------- players & pseudonyms ----------
+// Real names are never readable from the database. Each browser keeps its own
+// map of player id -> name, so people see their own name and a pseudonym for everyone else.
+function myPlayers() {
+  try { return JSON.parse(localStorage.getItem("precog.players") || "{}"); } catch (e) { return {}; }
+}
+function playerIdFor(name) {
+  const map = myPlayers();
+  const key = name.trim().toLowerCase();
+  let id = Object.keys(map).find(k => map[k].trim().toLowerCase() === key);
+  if (!id) {
+    id = crypto.randomUUID ? crypto.randomUUID()
+      : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+    map[id] = name;
+    try { localStorage.setItem("precog.players", JSON.stringify(map)); } catch (e) {}
+  }
+  return id;
+}
+const ADJ = ["Amber","Azure","Bold","Bright","Calm","Cobalt","Copper","Crimson","Dapper","Dusky","Ember","Fabled","Gentle","Gilded","Hidden","Hushed","Indigo","Ivory","Jade","Keen","Lucky","Lunar","Misty","Mystic","Nimble","Noble","Opal","Quiet","Russet","Sage","Silver","Smoky","Solar","Swift","Tawny","Velvet","Violet","Wandering","Wise","Zesty"];
+const NOUN = ["Badger","Comet","Crane","Falcon","Fox","Hare","Hawk","Heron","Ibis","Jackal","Kestrel","Lark","Lynx","Magpie","Marten","Moth","Newt","Oracle","Otter","Owl","Panther","Pike","Quail","Raven","Robin","Seer","Sparrow","Stag","Stoat","Swift","Tern","Tiger","Vole","Wolf","Wren","Yak","Zebra","Sphinx","Phoenix","Mantis"];
+function pseudonym(seed) {
+  let h = 2166136261;
+  for (const ch of String(seed)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  return ADJ[h % ADJ.length] + " " + NOUN[(h >>> 12) % NOUN.length];
+}
+
 function fromRow(r) {
-  return { name: r.name, at: r.created_at, n: r.n, hits: r.hits, pct: Number(r.pct),
+  const mine = myPlayers();
+  const own = r.player && mine[r.player];
+  return { name: own ? mine[r.player] : pseudonym(r.player || r.id), mine: !!own, player: r.player,
+           at: r.created_at, n: r.n, hits: r.hits, pct: Number(r.pct),
            targets: r.targets, guesses: r.guesses, salt: r.salt, seal: r.seal, id: r.id };
 }
 async function sbFetch(url, opts = {}, ms = 10000) {

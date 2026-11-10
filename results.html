@@ -41,14 +41,14 @@
   let shared = false;
   async function loadShared() {
     try {
-      const rows = await sbFetch(SB_URL + "?select=id,created_at,name,n,hits,pct,targets,guesses,salt,seal&order=created_at.desc&limit=5000");
+      const rows = await sbFetch(SB_URL + "?select=id,created_at,player,n,hits,pct,targets,guesses,salt,seal&order=created_at.desc&limit=5000");
       shared = true;
-      allRounds = rows.map(fromRow).concat(localRounds().map(r => Object.assign({ local: true }, r)));
-      $("logNote").textContent = "Shared log: everyone who visits sees every try. Click a row for the full sequence.";
+      allRounds = rows.map(fromRow).concat(localRounds().map(r => Object.assign({ local: true, mine: true }, r)));
+      $("logNote").textContent = "You see your own name; everyone else appears under a pseudonym. Click a row for the full sequence.";
     } catch (e) {
       console.warn("load failed", e);
       if (!shared) {
-        allRounds = localRounds().map(r => Object.assign({ local: true }, r));
+        allRounds = localRounds().map(r => Object.assign({ local: true, mine: true }, r));
         $("logNote").textContent = "The shared log can't be reached right now, so tries are kept on this device. Click a row for the full sequence.";
       }
     }
@@ -82,7 +82,7 @@
     rows.forEach((r, idx) => {
       const when = r.at ? new Date(r.at).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
       const key = (r.seal || "") + idx;
-      html += `<tr class="click" data-key="${esc(key)}"><td>${esc(when)}</td><td>${esc(r.name)}${r.local ? ' <span style="color:var(--muted);font-size:12px">(this device)</span>' : ""}</td><td class="num">${r.hits}/${r.n}</td><td class="num">${r.pct}%</td></tr>`;
+      html += `<tr class="click" data-key="${esc(key)}"><td>${esc(when)}</td><td>${r.mine ? "<strong>" + esc(r.name) + "</strong>" : esc(r.name)}${r.local ? ' <span style="color:var(--muted);font-size:12px">(this device only)</span>' : r.mine ? ' <span style="color:var(--accent);font-size:12px">(you)</span>' : ""}</td><td class="num">${r.hits}/${r.n}</td><td class="num">${r.pct}%</td></tr>`;
       if (openRow === key) html += detailRow(r);
     });
     html += `</tbody></table>`;

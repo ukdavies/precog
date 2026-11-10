@@ -272,6 +272,7 @@
 
     const entry = {
       name: player,
+      player: playerIdFor(player),
       targets: round.targets.map(t => CODE[t]).join(""),
       guesses: round.guesses.map(t => CODE[t]).join(""),
       salt: round.salt, seal: round.seal
