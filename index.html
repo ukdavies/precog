@@ -6,7 +6,7 @@
 <title>PreCog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=202611101138">
+<link rel="stylesheet" href="style.css?v=202611101146">
 </head>
 <body>
 <div class="wrap">
@@ -46,7 +46,7 @@
       <div class="count" id="count"></div>
     </div>
     <div class="progress"><div id="bar"></div></div>
-    <div class="mystery-wrap"><div class="mystery" id="mystery" aria-label="Hidden card">?</div></div>
+    <div class="mystery-wrap" id="mysteryWrap"><div class="mystery" id="mystery" aria-label="Hidden card"><span class="q">?</span></div></div>
     <div class="prompt" id="prompt">Which shape is it?</div>
     <div class="choices" id="choices"></div>
     <div class="reveal" id="reveal"></div>
@@ -81,7 +81,7 @@
   </section>
 </div>
 
-<script src="common.js?v=202611101138"></script>
+<script src="common.js?v=202611101146"></script>
 <script>
 (() => {
   const ROUND_LENGTH = 7;
@@ -211,12 +211,45 @@
 
   // The hidden card. Its symbol lives only in round.targets (script memory);
   // nothing about it is written to the page until the round is over.
+  const reducedMotion = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   function dealCard() {
     const m = $("mystery");
-    m.classList.remove("deal", "sealed");
+    m.classList.remove("deal", "sealed", "exit");
     void m.offsetWidth;
     m.classList.add("deal");
     m.title = `Card ${round.i + 1} of ${round.targets.length}`;
+    if (!reducedMotion()) {
+      setTimeout(() => { sparkleBurst(); ripple(); }, 380);
+    }
+  }
+
+  // Purely decorative: sparkles and a ring of light around the card.
+  function sparkleBurst() {
+    const wrap = $("mysteryWrap");
+    const glyphs = ["✦", "✧", "⋆", "✶", "·"];
+    const n = 14;
+    for (let k = 0; k < n; k++) {
+      const s = document.createElement("span");
+      s.className = "spark";
+      s.textContent = glyphs[k % glyphs.length];
+      const ang = (k / n) * Math.PI * 2 + Math.random() * 0.4;
+      const dist = 70 + Math.random() * 50;
+      s.style.setProperty("--dx", Math.cos(ang) * dist + "px");
+      s.style.setProperty("--dy", Math.sin(ang) * dist * 0.8 + "px");
+      s.style.setProperty("--rot", (Math.random() * 360 - 180) + "deg");
+      s.style.fontSize = (10 + Math.random() * 12) + "px";
+      s.style.animationDelay = (Math.random() * 80) + "ms";
+      wrap.appendChild(s);
+      setTimeout(() => s.remove(), 1000);
+    }
+  }
+  function ripple() {
+    const wrap = $("mysteryWrap");
+    const r = document.createElement("span");
+    r.className = "ripple";
+    wrap.appendChild(r);
+    setTimeout(() => r.remove(), 900);
   }
 
   function renderTrial() {
@@ -248,7 +281,9 @@
       b.classList.add(b.dataset.shape === s ? "picked" : "dim");
     });
     $("prompt").textContent = `Locked in: ${LABEL[s]}`;
-    $("mystery").classList.add("sealed");
+    const card = $("mystery");
+    card.classList.add("sealed");
+    if (!reducedMotion()) setTimeout(() => { card.classList.remove("deal"); card.classList.add("exit"); }, 220);
     const pip = document.createElement("div");
     pip.className = "pip";
     pip.title = `${round.i + 1}: you chose ${LABEL[s]}`;
@@ -257,7 +292,7 @@
     $("bar").style.width = ((round.i + 1) / round.targets.length * 100) + "%";
     const last = round.i === round.targets.length - 1;
     if (last) $("prompt").textContent = "All choices locked in. Revealing…";
-    setTimeout(nextTrial, last ? 900 : 450);
+    setTimeout(nextTrial, last ? 1000 : (reducedMotion() ? 450 : 620));
   }
 
   function nextTrial() {

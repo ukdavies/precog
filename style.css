@@ -159,20 +159,66 @@ a.btn-ghost { display: inline-flex; align-items: center; text-decoration: none; 
 
 
 /* Hidden card during play */
-.mystery-wrap { display: flex; justify-content: center; margin-bottom: 14px; perspective: 600px; }
+.mystery-wrap { position: relative; display: flex; justify-content: center; align-items: center; height: 160px; margin-bottom: 8px; perspective: 800px; }
 .mystery {
+  position: relative; overflow: hidden;
   width: 104px; aspect-ratio: 3 / 4; border-radius: 14px;
-  background: linear-gradient(160deg, #3a2a78, #1d1640); border: 1px solid var(--accent);
-  box-shadow: 0 0 22px -4px var(--accent-2);
+  background:
+    radial-gradient(circle at 50% 50%, transparent 38%, rgba(201,168,255,.08) 39%, transparent 41%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 6px, transparent 6px 12px),
+    linear-gradient(160deg, #3a2a78, #1d1640);
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 22px -4px var(--accent-2), inset 0 0 0 4px rgba(201,168,255,.12);
   display: grid; place-items: center; user-select: none;
   font-family: "Cormorant Garamond", Georgia, serif; font-size: 64px; font-weight: 600; color: var(--accent);
   animation: hover-float 3s ease-in-out infinite;
+  transform-style: preserve-3d;
 }
-.mystery.deal { animation: deal-in .45s ease-out, hover-float 3s ease-in-out .45s infinite; }
-.mystery.sealed { animation: none; transform: scale(.94); box-shadow: 0 0 34px -2px var(--accent); transition: transform .2s, box-shadow .2s; }
-@keyframes deal-in { from { opacity: 0; transform: translateY(-18px) rotateY(90deg); } to { opacity: 1; transform: none; } }
-@keyframes hover-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-@media (prefers-reduced-motion: reduce) { .mystery, .mystery.deal { animation: none; } }
+.mystery .q { text-shadow: 0 0 18px rgba(201,168,255,.7); animation: q-glow 2.4s ease-in-out infinite; }
+.mystery::after {
+  content: ""; position: absolute; inset: -40%;
+  background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,.35) 50%, transparent 60%);
+  transform: translateX(-120%); pointer-events: none;
+}
+.mystery.deal { animation: deal-in .7s cubic-bezier(.2,.9,.25,1.15), hover-float 3s ease-in-out .7s infinite; }
+.mystery.deal::after { animation: shimmer .9s ease-out .45s; }
+.mystery.sealed { animation: none; transform: scale(.92); box-shadow: 0 0 40px 0 var(--accent); transition: transform .18s, box-shadow .18s; }
+.mystery.exit { animation: card-exit .4s ease-in forwards; }
+@keyframes deal-in {
+  0%   { opacity: 0; transform: translate(-160px, -60px) rotateY(-540deg) rotateZ(-25deg) scale(.35); filter: blur(3px); }
+  60%  { opacity: 1; transform: translate(8px, 4px) rotateY(-20deg) rotateZ(3deg) scale(1.08); filter: blur(0); }
+  100% { transform: none; }
+}
+@keyframes card-exit {
+  0%   { transform: scale(.92); opacity: 1; }
+  100% { transform: translate(140px, 40px) rotateZ(35deg) rotateY(80deg) scale(.4); opacity: 0; }
+}
+@keyframes shimmer { to { transform: translateX(120%); } }
+@keyframes hover-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes q-glow { 0%, 100% { opacity: .85; } 50% { opacity: 1; text-shadow: 0 0 26px rgba(201,168,255,.95); } }
+
+.spark {
+  position: absolute; left: 50%; top: 50%; color: #e7d6ff; pointer-events: none;
+  text-shadow: 0 0 8px var(--accent);
+  animation: spark-out .85s ease-out forwards;
+}
+@keyframes spark-out {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.3); }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(1); }
+}
+.ripple {
+  position: absolute; left: 50%; top: 50%; width: 110px; height: 146px; border-radius: 16px;
+  border: 2px solid var(--accent); pointer-events: none;
+  animation: ripple-out .85s ease-out forwards;
+}
+@keyframes ripple-out {
+  0%   { opacity: .9; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.7); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mystery, .mystery.deal, .mystery .q, .mystery.deal::after { animation: none; }
+}
 
 /* Card reveal on results */
 .reveal-row { margin: 22px auto 6px; perspective: 600px; }
