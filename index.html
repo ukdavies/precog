@@ -6,7 +6,7 @@
 <title>PreCog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=202611101146">
+<link rel="stylesheet" href="style.css?v=202611101156">
 </head>
 <body>
 <div class="wrap">
@@ -14,6 +14,7 @@
     <h1>PreCog</h1>
     <div class="tag">A sequence of shapes has been chosen before you begin. Can you sense them?</div>
     <nav class="nav">
+      <a href="https://ukdavies.com/" class="home">← ukdavies.com</a>
       <a href="./" class="on">Take the test</a>
       <a href="results.html">All results</a>
     </nav>
@@ -29,7 +30,8 @@
     <div class="actions">
       <button class="btn-primary" id="startBtn" disabled>Begin</button>
     </div>
-    <div class="hint">Each round is 7 shapes. With four to choose from, pure guessing averages 25%. The whole sequence is drawn at random when you press Begin, and sealed with a fingerprint you can check at the end.</div>
+    <div class="note" id="startError" style="color:var(--miss)"></div>
+    <div class="hint">Each round is 7 shapes. With four to choose from, pure guessing averages 25%. When you press Begin, the PreCog server draws all seven at random and keeps them sealed. You see only a fingerprint, and the cards are revealed once all your choices are in.</div>
   </section>
 
   <!-- Scramble -->
@@ -81,7 +83,7 @@
   </section>
 </div>
 
-<script src="common.js?v=202611101146"></script>
+<script src="common.js?v=202611101156"></script>
 <script>
 (() => {
   const ROUND_LENGTH = 7;
@@ -97,10 +99,6 @@
     a = a.slice();
     for (let i = a.length - 1; i > 0; i--) { const j = randInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
     return a;
-  }
-  function randSalt() {
-    const b = new Uint8Array(6); crypto.getRandomValues(b);
-    return Array.from(b, x => x.toString(16).padStart(2, "0")).join("");
   }
   async function sha256(text) {
     const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -152,18 +150,24 @@
     player = nameEl.value.trim().slice(0, 40);
     if (!player) return;
     try { localStorage.setItem("precog.name", player); } catch (e) {}
-    const n = ROUND_LENGTH;
-    const targets = Array.from({ length: n }, () => SHAPES[randInt(4)]);
-    const salt = randSalt();
-    const sealText = salt + ":" + targets.map(t => CODE[t]).join("");
-    round = {
-      targets, guesses: [], i: 0, order: shuffle(SHAPES),
-      salt, sealText, seal: await sha256(sealText), started: new Date().toISOString()
-    };
+    $("startError").textContent = "";
+    // The server draws and keeps the symbols. We only get a round id and its fingerprint.
+    round = { n: ROUND_LENGTH, targets: null, guesses: [], i: 0, order: shuffle(SHAPES) };
+    const drawn = sbRpc("start_round", { p_name: player, p_player: playerIdFor(player) })
+      .then(rows => rows[0]);
     $("who").textContent = player;
-    $("hashNow").textContent = round.seal.slice(0, 16) + "…";
     $("trail").innerHTML = "";
-    await scramble(round);
+    try {
+      await scramble(round, drawn);
+    } catch (e) {
+      console.warn("start failed", e);
+      scrambling = false;
+      $("startBtn").disabled = !nameEl.value.trim(); $("againBtn").disabled = false;
+      show("startCard");
+      $("startError").textContent = "Couldn't reach the PreCog server to draw your cards. Please try again in a moment.";
+      return;
+    }
+    $("hashNow").textContent = round.seal.slice(0, 16) + "…";
     show("gameCard");
     renderTrial();
   }
@@ -172,10 +176,10 @@
   // the real targets are already fixed and never shown here.
   let scrambling = false;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  async function scramble(r) {
+  async function scramble(r, drawn) {
     scrambling = true;
     $("startBtn").disabled = true; $("againBtn").disabled = true;
-    const n = r.targets.length;
+    const n = r.n;
     const box = $("slots");
     box.innerHTML = "";
     const slots = [];
@@ -201,9 +205,12 @@
       slots[i].classList.add("locked");
       await sleep(reduced ? 40 : 170);
     }
-    clearInterval(ticker);
+    let res;
+    try { res = await drawn; } finally { clearInterval(ticker); }
+    if (!res || !res.session_id) throw new Error("no round returned");
+    round.sessionId = res.session_id; round.n = res.n; round.seal = res.seal;
     $("scrambleTitle").textContent = "Sequence sealed";
-    $("scrambleSub").innerHTML = `Fingerprint <span class="hash">${round.seal.slice(0, 16)}…</span><br>Fixed now. Nothing can change it during your round.`;
+    $("scrambleSub").innerHTML = `Fingerprint <span class="hash">${round.seal.slice(0, 16)}…</span><br>Drawn and held by the server. Nothing can change it during your round.`;
     await sleep(reduced ? 500 : 1400);
     $("startBtn").disabled = !nameEl.value.trim(); $("againBtn").disabled = false;
     scrambling = false;
@@ -218,7 +225,7 @@
     m.classList.remove("deal", "sealed", "exit");
     void m.offsetWidth;
     m.classList.add("deal");
-    m.title = `Card ${round.i + 1} of ${round.targets.length}`;
+    m.title = `Card ${round.i + 1} of ${round.n}`;
     if (!reducedMotion()) {
       setTimeout(() => { sparkleBurst(); ripple(); }, 380);
     }
@@ -254,9 +261,9 @@
 
   function renderTrial() {
     dealCard();
-    const { i, targets, order } = round;
-    $("count").textContent = `Shape ${i + 1} of ${targets.length}`;
-    $("bar").style.width = (i / targets.length * 100) + "%";
+    const { i, n, order } = round;
+    $("count").textContent = `Shape ${i + 1} of ${n}`;
+    $("bar").style.width = (i / n * 100) + "%";
     $("prompt").textContent = "Which shape is it?";
     $("reveal").innerHTML = "";
     $("nextBtn").classList.add("hidden");
@@ -289,14 +296,14 @@
     pip.title = `${round.i + 1}: you chose ${LABEL[s]}`;
     pip.innerHTML = shapeSvg(s);
     $("trail").appendChild(pip);
-    $("bar").style.width = ((round.i + 1) / round.targets.length * 100) + "%";
-    const last = round.i === round.targets.length - 1;
+    $("bar").style.width = ((round.i + 1) / round.n * 100) + "%";
+    const last = round.i === round.n - 1;
     if (last) $("prompt").textContent = "All choices locked in. Revealing…";
     setTimeout(nextTrial, last ? 1000 : (reducedMotion() ? 450 : 620));
   }
 
   function nextTrial() {
-    if (round.i === round.targets.length - 1) return finish();
+    if (round.i === round.n - 1) return finish();
     round.i++;
     renderTrial();
   }
@@ -323,51 +330,42 @@
   }
 
   async function finish() {
-    const n = round.targets.length;
-    const hits = round.targets.reduce((a, t, i) => a + (t === round.guesses[i] ? 1 : 0), 0);
-    const pct = Math.round(hits / n * 1000) / 10;
+    let res;
+    try {
+      const rows = await sbRpc("submit_round", {
+        p_session: round.sessionId,
+        p_guesses: round.guesses.map(t => CODE[t]).join("")
+      });
+      res = rows[0];
+    } catch (e) {
+      console.warn("submit failed", e);
+      $("prompt").innerHTML = `Couldn't reach the server to reveal your cards. <button class="btn-ghost" id="retryBtn" style="margin-left:8px;padding:6px 12px">Try again</button>`;
+      $("retryBtn").addEventListener("click", () => { $("prompt").textContent = "Revealing…"; finish(); });
+      return;
+    }
+    round.targets = res.targets.split("").map(c => FROM_CODE[c]);
+    round.salt = res.salt;
+    round.sealText = res.salt + ":" + res.targets;
+    const n = res.n, hits = res.hits, pct = Number(res.pct);
     $("hitsBig").innerHTML = `${hits}<span class="of">/${n}</span>`;
     $("pct").textContent = pct + "%";
     $("pctSub").textContent = `Guessing would average ${(n / 4).toFixed(2).replace(/\.?0+$/, "")} out of ${n} (25%)`;
     $("pctRead").textContent = verdictText(hits, n);
     let rows = `<div class="h">#</div><div class="h">You chose</div><div class="h">Answer</div><div class="h"></div>`;
-    round.targets.forEach((t, i) => {
-      const g = round.guesses[i], ok = g === t;
-      rows += `<div>${i + 1}</div><div>${shapeSvg(g)}${LABEL[g]}</div><div>${shapeSvg(t)}${LABEL[t]}</div><div style="color:${ok ? "var(--hit)" : "var(--miss)"}">${ok ? "✓" : "✗"}</div>`;
+    round.targets.forEach((t, k) => {
+      const g = round.guesses[k], ok = g === t;
+      rows += `<div>${k + 1}</div><div>${shapeSvg(g)}${LABEL[g]}</div><div>${shapeSvg(t)}${LABEL[t]}</div><div style="color:${ok ? "var(--hit)" : "var(--miss)"}">${ok ? "✓" : "✗"}</div>`;
     });
     $("seq").innerHTML = rows;
-    revealCards();
     $("sealText").textContent = round.sealText;
     $("sealHash").textContent = round.seal;
     show("resultCard");
-
-    const entry = {
-      name: player,
-      player: playerIdFor(player),
-      targets: round.targets.map(t => CODE[t]).join(""),
-      guesses: round.guesses.map(t => CODE[t]).join(""),
-      salt: round.salt, seal: round.seal
-    };
-    $("saveNote").textContent = "Saving to the results log…";
-    const ok = await saveRound(entry);
-    $("saveNote").textContent = ok ? "Saved to the results log." : "Couldn't reach the results log, so this round is kept on this device only.";
-  }
-
-  async function saveRound(entry) {
-    try {
-      await sbFetch(SB_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
-        body: JSON.stringify(entry)
-      });
-      return true;
-    } catch (e) {
-      console.warn("save failed", e);
-      const n = entry.targets.length;
-      const hits = entry.targets.split("").filter((c, i) => c === entry.guesses[i]).length;
-      saveLocal(Object.assign({ at: new Date().toISOString(), n, hits, pct: Math.round(hits / n * 1000) / 10 }, entry));
-      return false;
-    }
+    revealCards();
+    // Check the server kept its word: the revealed cards must hash to the fingerprint shown at the start.
+    const ok = (await sha256(round.sealText)) === round.seal && res.seal === round.seal;
+    $("saveNote").innerHTML = ok
+      ? `<span style="color:var(--hit)">✓ Fingerprint verified.</span> Saved to the results log.`
+      : `<span style="color:var(--miss)">✗ Fingerprint mismatch.</span> The revealed cards don't match the sealed sequence.`;
   }
 })();
 </script>

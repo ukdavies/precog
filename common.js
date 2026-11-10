@@ -72,6 +72,11 @@ function fromRow(r) {
            at: r.created_at, n: r.n, hits: r.hits, pct: Number(r.pct),
            targets: r.targets, guesses: r.guesses, salt: r.salt, seal: r.seal, id: r.id };
 }
+function sbRpc(fn, args) {
+  return sbFetch(SB_URL.replace(/\/rounds$/, "/rpc/") + fn, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(args)
+  });
+}
 async function sbFetch(url, opts = {}, ms = 10000) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);

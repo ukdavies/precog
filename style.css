@@ -226,3 +226,6 @@ a.btn-ghost { display: inline-flex; align-items: center; text-decoration: none; 
 .slot.hit svg { color: var(--hit); }
 .slot.miss { border-color: color-mix(in srgb, var(--miss) 55%, var(--line)); }
 .slot.miss svg { color: var(--text); }
+
+.nav a.home { color: var(--accent); }
+.nav a.home:hover { border-color: var(--accent-2); }
