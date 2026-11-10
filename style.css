@@ -227,5 +227,14 @@ a.btn-ghost { display: inline-flex; align-items: center; text-decoration: none; 
 .slot.miss { border-color: color-mix(in srgb, var(--miss) 55%, var(--line)); }
 .slot.miss svg { color: var(--text); }
 
-.nav a.home { color: var(--accent); }
-.nav a.home:hover { border-color: var(--accent-2); }
+/* Footer banner */
+.site-foot {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 36px; padding-top: 22px; border-top: 1px solid var(--line);
+  font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; font-size: 14px; color: var(--muted);
+}
+.site-foot img { width: 28px; height: 28px; border-radius: 6px; flex: none; }
+.site-foot span { flex: 1; min-width: 0; line-height: 1.6; }
+.site-foot a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.site-foot a:hover { color: #fff; }
+@media (max-width: 560px) { .site-foot { font-size: 12px; } }
