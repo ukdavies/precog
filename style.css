@@ -116,8 +116,13 @@ button {
 
 /* Result */
 .score { text-align: center; }
-.score .big { font-family: "Cormorant Garamond", Georgia, serif; font-size: 84px; font-weight: 600; line-height: 1; color: var(--accent); }
-.score .sub { color: var(--muted); margin-top: 6px; }
+.score .big { font-family: "Cormorant Garamond", Georgia, serif; font-size: 84px; font-weight: 600; line-height: 1; color: var(--accent); font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1; }
+.score .big .of { font-size: .55em; color: var(--muted); margin-left: 2px; }
+.score .bigrow { display: flex; justify-content: center; align-items: center; gap: 36px; margin-top: 6px; }
+.score .bigrow .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; margin-top: 6px; }
+.score .divider { width: 1px; align-self: stretch; background: var(--line); }
+@media (max-width: 560px) { .score .big { font-size: 60px; } .score .bigrow { gap: 22px; } }
+.score .sub { color: var(--muted); margin-top: 14px; }
 .score .read { margin-top: 14px; font-size: 16px; }
 .seq { display: grid; grid-template-columns: auto 1fr 1fr auto; gap: 4px 14px; font-size: 13px; margin-top: 18px; max-height: 280px; overflow: auto; }
 .seq div { padding: 4px 0; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 6px; }

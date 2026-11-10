@@ -60,7 +60,11 @@
   <section class="card hidden" id="resultCard">
     <div class="score">
       <h2>Round complete</h2>
-      <div class="big" id="pct"></div>
+      <div class="bigrow">
+        <div><div class="big" id="hitsBig"></div><div class="lbl">correct</div></div>
+        <div class="divider"></div>
+        <div><div class="big" id="pct"></div><div class="lbl">score</div></div>
+      </div>
       <div class="sub" id="pctSub"></div>
       <div class="read" id="pctRead"></div>
     </div>
@@ -252,8 +256,9 @@
     const n = round.targets.length;
     const hits = round.targets.reduce((a, t, i) => a + (t === round.guesses[i] ? 1 : 0), 0);
     const pct = Math.round(hits / n * 1000) / 10;
+    $("hitsBig").innerHTML = `${hits}<span class="of">/${n}</span>`;
     $("pct").textContent = pct + "%";
-    $("pctSub").textContent = `${hits} of ${n} correct · chance is 25%`;
+    $("pctSub").textContent = `Guessing would average ${(n / 4).toFixed(2).replace(/\.?0+$/, "")} out of ${n} (25%)`;
     $("pctRead").textContent = verdictText(hits, n);
     let rows = `<div class="h">#</div><div class="h">You chose</div><div class="h">Answer</div><div class="h"></div>`;
     round.targets.forEach((t, i) => {
