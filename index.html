@@ -190,14 +190,14 @@
       <div class="count" id="count"></div>
     </div>
     <div class="progress"><div id="bar"></div></div>
-    <div class="prompt" id="prompt">Which shape is next?</div>
+    <div class="prompt" id="prompt">Which shape is it?</div>
     <div class="choices" id="choices"></div>
     <div class="reveal" id="reveal"></div>
     <div class="actions" style="justify-content:center">
       <button class="btn-primary hidden" id="nextBtn">Next</button>
     </div>
     <div class="trail" id="trail"></div>
-    <div class="note" style="text-align:center">Keys: 1–4 (or S, C, T, D) to choose, Enter for next.<br>Sealed sequence fingerprint: <span class="hash" id="hashNow"></span></div>
+    <div class="note" style="text-align:center">Answers stay hidden until the end. Keys: 1–4 (or S, C, T, D).<br>Sealed sequence fingerprint: <span class="hash" id="hashNow"></span></div>
   </section>
 
   <!-- Result -->
@@ -317,8 +317,6 @@
     if (awaiting) {
       const byKey = { "1": round.order[0], "2": round.order[1], "3": round.order[2], "4": round.order[3], s: "square", c: "circle", t: "triangle", d: "diamond" };
       if (byKey[k]) { e.preventDefault(); choose(byKey[k]); }
-    } else if ((k === "enter" || k === " ") && document.activeElement !== $("nextBtn")) {
-      e.preventDefault(); nextTrial();
     }
   });
 
@@ -392,7 +390,7 @@
     const { i, targets, order } = round;
     $("count").textContent = `Shape ${i + 1} of ${targets.length}`;
     $("bar").style.width = (i / targets.length * 100) + "%";
-    $("prompt").textContent = "Which shape is next?";
+    $("prompt").textContent = "Which shape is it?";
     $("reveal").innerHTML = "";
     $("nextBtn").classList.add("hidden");
     const box = $("choices");
@@ -407,31 +405,24 @@
     });
   }
 
+  // Blind mode: no feedback until the round is over.
   function choose(s) {
     if (round.guesses.length > round.i) return;
-    const target = round.targets[round.i];
     round.guesses.push(s);
-    const hit = s === target;
     document.querySelectorAll(".choice").forEach(b => {
       b.disabled = true;
-      const sh = b.dataset.shape;
-      if (sh === target) b.classList.add(hit ? "target-hit" : "target-miss");
-      else if (sh === s) b.classList.add("picked");
-      else b.classList.add("dim");
+      b.classList.add(b.dataset.shape === s ? "picked" : "dim");
     });
-    $("prompt").textContent = hit ? "" : `You chose ${LABEL[s]}.`;
-    $("reveal").innerHTML = `<div class="verdict ${hit ? "hit" : "miss"}">${hit ? "Hit! It was the " + LABEL[target] : "It was the " + LABEL[target]}</div>`;
+    $("prompt").textContent = `Locked in: ${LABEL[s]}`;
     const pip = document.createElement("div");
-    pip.className = "pip " + (hit ? "hit" : "miss");
-    pip.title = `${round.i + 1}: guessed ${LABEL[s]}, was ${LABEL[target]}`;
-    pip.innerHTML = shapeSvg(target);
+    pip.className = "pip";
+    pip.title = `${round.i + 1}: you chose ${LABEL[s]}`;
+    pip.innerHTML = shapeSvg(s);
     $("trail").appendChild(pip);
     $("bar").style.width = ((round.i + 1) / round.targets.length * 100) + "%";
     const last = round.i === round.targets.length - 1;
-    const nb = $("nextBtn");
-    nb.textContent = last ? "See my score" : "Next";
-    nb.classList.remove("hidden");
-    nb.focus({ preventScroll: true });
+    if (last) $("prompt").textContent = "All choices locked in. Revealing…";
+    setTimeout(nextTrial, last ? 900 : 450);
   }
 
   function nextTrial() {
