@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PreCog · The Mentalist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0f1020">
+<link rel="stylesheet" href="style.css?v=202611101240">
+<style>
+  /* The faint colour wash behind the patter. Part of the act. */
+  #aura {
+    position: fixed; inset: 0; pointer-events: none; z-index: -1;
+    background: radial-gradient(900px 700px at 50% 55%, var(--aura, transparent) 0%, transparent 70%);
+    opacity: 0; transition: opacity 6s ease;
+  }
+  body { position: relative; z-index: 0; }
+
+  .stage { min-height: 300px; display: flex; flex-direction: column; }
+  .speaker { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .orb {
+    width: 44px; height: 44px; border-radius: 50%; flex: none;
+    background: radial-gradient(circle at 35% 30%, #fff 0%, var(--accent) 22%, var(--accent-2) 55%, #241a52 100%);
+    box-shadow: 0 0 22px -2px var(--accent-2);
+    animation: breathe 4s ease-in-out infinite;
+  }
+  @keyframes breathe { 50% { box-shadow: 0 0 34px 2px var(--accent-2); transform: scale(1.04); } }
+  .speaker .nm { font-family: "Cormorant Garamond", Georgia, serif; font-size: 22px; font-weight: 600; color: var(--accent); }
+  .speaker .st { font-size: 12px; color: var(--muted); }
+
+  .script { display: flex; flex-direction: column; gap: 14px; }
+  .line {
+    font-family: "Cormorant Garamond", Georgia, serif; font-size: 23px; line-height: 1.4; color: var(--text);
+    transition: opacity .6s, font-size .4s;
+  }
+  .line.old { opacity: .38; font-size: 18px; }
+  .line.you { font-family: Inter, system-ui, sans-serif; font-size: 14px; color: var(--accent); align-self: flex-end;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px 12px 4px 12px; padding: 6px 12px; }
+  .line.you.old { font-size: 13px; }
+  .caret::after { content: "▍"; color: var(--accent); animation: blink 1s steps(1) infinite; margin-left: 1px; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .controls { margin-top: auto; padding-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; min-height: 66px; }
+  .opt { background: var(--panel-2); color: var(--text); border-color: var(--line); font-weight: 500; }
+  .opt:hover { border-color: var(--accent); }
+  .controls .fade-in { animation: up .35s ease both; }
+  @keyframes up { from { opacity: 0; transform: translateY(6px); } }
+
+  /* Sealed prediction */
+  .envelope-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 18px 0 4px; }
+  .envelope {
+    width: 150px; height: 100px; border-radius: 10px; position: relative;
+    background: linear-gradient(160deg, #3a2a78, #1d1640); border: 1px solid var(--accent);
+    box-shadow: 0 0 24px -6px var(--accent-2); overflow: hidden;
+  }
+  .envelope::before { /* flap */
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 60%;
+    background: linear-gradient(160deg, #4a389a, #2a1f5c);
+    clip-path: polygon(0 0, 100% 0, 50% 100%); border-bottom: 1px solid var(--accent);
+    transform-origin: top; transition: transform .7s ease;
+  }
+  .envelope .wax {
+    position: absolute; left: 50%; top: 52%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #e7d3ff, var(--accent-2)); z-index: 2;
+    display: grid; place-items: center; font-family: "Cormorant Garamond", serif; font-weight: 600; color: #1d1640; font-size: 16px;
+    transition: opacity .4s, transform .4s;
+  }
+  .envelope .card-in {
+    position: absolute; left: 14px; right: 14px; bottom: 10px; height: 64px; border-radius: 6px;
+    background: var(--pred, #333); transform: translateY(80px); transition: transform .8s cubic-bezier(.2,.9,.3,1.2) .35s;
+    display: grid; place-items: center; font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
+    color: rgba(0,0,0,.6);
+  }
+  .envelope.sealing { animation: seal .9s ease; }
+  @keyframes seal { 30% { transform: scale(1.08) rotate(-2deg); } 60% { transform: scale(.97) rotate(1deg); } }
+  .envelope.open::before { transform: rotateX(180deg); }
+  .envelope.open .wax { opacity: 0; transform: scale(1.6); }
+  .envelope.open .card-in { transform: translateY(-14px); }
+  .envelope-wrap .hash { text-align: center; }
+
+  /* Colour choice */
+  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; width: 100%; }
+  @media (min-width: 640px) { .swatches { grid-template-columns: repeat(6, 1fr); } }
+  .swatch {
+    aspect-ratio: 1; border-radius: 14px; border: 2px solid transparent; padding: 0;
+    background: var(--c); display: flex; align-items: flex-end; justify-content: center;
+    box-shadow: inset 0 -30px 30px -20px rgba(0,0,0,.35); transition: transform .12s, border-color .12s, opacity .3s;
+  }
+  .swatch span { font-size: 12px; font-weight: 600; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); margin-bottom: 8px; }
+  .swatch:hover:not(:disabled) { transform: translateY(-3px); border-color: #fff; }
+  .swatch:disabled { cursor: default; }
+  .swatch.dim { opacity: .25; }
+  .swatch.picked { border-color: #fff; }
+
+  .verdict { font-family: "Cormorant Garamond", Georgia, serif; font-size: 34px; font-weight: 600; text-align: center; margin-top: 6px; }
+  .verdict.hit { color: var(--hit); }
+  .verdict.miss { color: var(--miss); }
+  .tally { text-align: center; color: var(--muted); margin-top: 6px; }
+  .tally b { color: var(--text); }
+  .dots { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--c); outline: 2px solid transparent; outline-offset: 2px; }
+  .dot.hit { outline-color: var(--hit); }
+
+  details.how { margin-top: 18px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  details.how summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  details.how p { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+  details.how .said { margin-top: 10px; font-family: "Cormorant Garamond", Georgia, serif; font-size: 17px; color: var(--text); }
+  details.how mark { background: color-mix(in srgb, var(--cue) 35%, transparent); color: var(--text); border-radius: 3px; padding: 0 2px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="aura"></div>
+<div class="wrap">
+  <header>
+    <h1>PreCog</h1>
+    <div class="tag">Think of a colour. The Mentalist will have written it down before you choose.</div>
+    <nav class="nav">
+      <a href="./">Shapes test</a>
+      <a href="mentalist.html" class="on">The Mentalist</a>
+      <a href="results.html">All results</a>
+    </nav>
+  </header>
+
+  <!-- Start -->
+  <section class="card" id="startCard">
+    <h2>The Mentalist</h2>
+    <div>
+      <label for="name">Your name</label>
+      <input type="text" id="name" maxlength="40" autocomplete="name" placeholder="e.g. Andy">
+    </div>
+    <div class="actions">
+      <button class="btn-primary" id="startBtn" disabled>Begin</button>
+    </div>
+    <div class="hint">The Mentalist will talk with you for a minute or so and ask a few questions. Then it seals a prediction, and only after that do you choose a colour from six. Pure guessing would match about 1 time in 6.</div>
+  </section>
+
+  <!-- Patter -->
+  <section class="card hidden" id="stageCard">
+    <div class="stage">
+      <div class="speaker">
+        <div class="orb" aria-hidden="true"></div>
+        <div><div class="nm">The Mentalist</div><div class="st" id="who"></div></div>
+      </div>
+      <div class="script" id="script" aria-live="polite"></div>
+      <div class="envelope-wrap hidden" id="envWrap">
+        <div class="envelope" id="envelope"><div class="card-in" id="predCard"></div><div class="wax">P</div></div>
+        <div class="hash" id="sealShow"></div>
+      </div>
+      <div class="swatches hidden" id="swatches"></div>
+      <div class="controls" id="controls"></div>
+    </div>
+  </section>
+
+  <!-- Result -->
+  <section class="card hidden" id="resultCard">
+    <div class="verdict" id="verdict"></div>
+    <div class="envelope-wrap" id="envWrap2"></div>
+    <div class="tally" id="tally"></div>
+    <div class="dots" id="dots"></div>
+    <details class="how">
+      <summary>How did I do it?</summary>
+      <p>No psychic powers, just suggestion. Before we started, I picked a colour at random and then wove words and images linked to it into everything I said. The background also took on a very faint tint of that colour as we talked. Here's what I said, with the cues highlighted:</p>
+      <div class="said" id="said"></div>
+    </details>
+    <div class="note" style="text-align:center;margin-top:14px">Fingerprint check: the SHA-256 of <span class="hash" id="sealText"></span> is <span class="hash" id="sealHash"></span>, the one shown before you chose. <span id="sealOk"></span></div>
+    <div class="actions" style="justify-content:center">
+      <button class="btn-primary" id="againBtn">Play again</button>
+      <button class="btn-ghost" id="changeBtn">Change player</button>
+    </div>
+  </section>
+
+  <footer class="site-foot">
+    <img src="nuffield-mark.svg" width="28" height="28" alt="Nuffield Consulting">
+    <span>© 2026 <a href="https://nuffieldconsulting.com/">Nuffield Consulting</a> · Contact <a href="mailto:info@nuffieldconsulting.com">info@nuffieldconsulting.com</a></span>
+  </footer>
+</div>
+
+<script src="common.js?v=202611101240"></script>
+<script>
+(() => {
+  // ---------- colours and their suggestion scripts ----------
+  const COLOURS = {
+    red: {
+      label: "Red", hex: "#e5484d",
+      scene: "Picture yourself somewhere warm. A fire crackling in the hearth, its glow on your face, your heart beating slow and steady.",
+      sceneQ: "Sitting by that fire, what do you notice most?",
+      sceneOpts: ["The warmth on my skin", "The crackle of the logs", "The glow in the room"],
+      settle: "Good. Hold on to that warmth. Let your pulse settle. Steady. Strong. Full of life.",
+      nudge: "Don't reach for it. Let it rise on its own, the way a blush rises without asking.",
+      cues: ["warm", "warmth", "fire", "glow", "heart", "pulse", "strong", "life", "blush", "rise", "rises", "crackle", "crackling"]
+    },
+    blue: {
+      label: "Blue", hex: "#4a8cf0",
+      scene: "Picture yourself by the sea on a clear day. The sky wide open above you, the water stretching away, cool and calm.",
+      sceneQ: "Standing there by the water, what do you notice most?",
+      sceneOpts: ["The sound of the waves", "The cool breeze", "The endless sky"],
+      settle: "Breathe out slowly. Cool. Clear. Deep. Let your mind go still, like water.",
+      nudge: "Don't grab at it. Let it float up from somewhere deep and calm.",
+      cues: ["sea", "sky", "water", "cool", "calm", "clear", "deep", "still", "float", "waves", "breeze"]
+    },
+    green: {
+      label: "Green", hex: "#46b87a",
+      scene: "Picture yourself walking through a quiet forest after rain. Moss underfoot, leaves overhead, everything fresh and growing.",
+      sceneQ: "Walking through those trees, what do you notice most?",
+      sceneOpts: ["The smell of the leaves", "The soft moss underfoot", "The light through the trees"],
+      settle: "Let that freshness fill you. Natural. Balanced. Alive. Breathe it in.",
+      nudge: "Don't force it. Let it grow on its own, like something springing up from the earth.",
+      cues: ["forest", "moss", "leaves", "fresh", "growing", "grow", "natural", "balanced", "alive", "trees", "springing", "earth"]
+    },
+    yellow: {
+      label: "Yellow", hex: "#f2cc3b",
+      scene: "Picture a bright summer morning. Sunlight streaming through the window, a field of sunflowers outside, the whole day full of promise.",
+      sceneQ: "Looking out at that morning, what do you notice most?",
+      sceneOpts: ["The sunshine on my face", "The sunflowers", "The bright, open sky"],
+      settle: "Let that brightness in. Light. Cheerful. Golden. A little spark of energy.",
+      nudge: "Don't think too hard. Let it come to you like sunlight through a gap in the curtains.",
+      cues: ["bright", "brightness", "summer", "sunlight", "sunflowers", "sunshine", "light", "cheerful", "golden", "spark", "morning"]
+    },
+    orange: {
+      label: "Orange", hex: "#f5873b",
+      scene: "Picture an autumn evening. A pumpkin on the doorstep, leaves turning, the low sun spreading its last light across the sky.",
+      sceneQ: "On that autumn evening, what do you notice most?",
+      sceneOpts: ["The sunset", "The crunch of the leaves", "The smell of something spiced"],
+      settle: "Let that feeling settle. Cosy. Playful. Zesty, like the first bite of something juicy.",
+      nudge: "Don't chase it. Let it ripen in your mind, like fruit in the autumn sun.",
+      cues: ["autumn", "pumpkin", "turning", "low sun", "sunset", "spiced", "cosy", "playful", "zesty", "juicy", "ripen", "fruit"]
+    },
+    purple: {
+      label: "Purple", hex: "#9a6cf0",
+      scene: "Picture yourself at dusk, just as the light fades. Lavender in the air, the first stars appearing, something a little magical about the moment.",
+      sceneQ: "In that twilight, what do you notice most?",
+      sceneOpts: ["The scent of lavender", "The fading light", "The first stars"],
+      settle: "Let that sense of mystery settle over you. Rich. Regal. A little dreamlike.",
+      nudge: "Don't reach for the obvious. Let it emerge slowly, out of the twilight.",
+      cues: ["dusk", "fades", "fading", "lavender", "stars", "magical", "twilight", "mystery", "rich", "regal", "dreamlike"]
+    }
+  };
+  const KEYS = Object.keys(COLOURS);
+
+  const SCENE_REPLY = ["Yes. Stay there a moment.", "Good. Let that sharpen.", "Of course. I thought you might say that."];
+
+  const QUESTIONS = [
+    { q: "First, an easy one. When you make a decision, do you trust your head or your gut?",
+      opts: [["My head", "A thinker. Then I'll need to get past the part of you that's checking my work."],
+             ["My gut", "Good. Your gut is exactly what I'm going to be talking to."]] },
+    { q: "Are you more of a morning person or a night owl?",
+      opts: [["Morning", "Clear-headed early. That's useful. Your first impressions are usually right."],
+             ["Night owl", "I thought so. Your imagination does its best work when things go quiet."]] },
+    { q: "When you walk into a room, what do you notice first, the people or the space?",
+      opts: [["The people", "You read people. Which means you're harder to read yourself. Let's see."],
+             ["The space", "You take in your surroundings. Pictures, then. I'll give you pictures."]] },
+    { q: "Pick a number. One, two, three or four.",
+      opts: [["One", "One. Direct. You like to go first."], ["Two", "Two. You keep something in reserve."],
+             ["Three", "Three. Most people do. But you knew that, didn't you?"], ["Four", "Four. Careful. You like solid ground."]] },
+    { q: "If you had to choose, a quiet evening in or a night out?",
+      opts: [["Quiet evening in", "That inner world of yours is the one I want to talk to."],
+             ["Night out", "You feed off energy. Then let me give you some."]] }
+  ];
+
+  const READINGS = [
+    "I'm getting a sense of you already. You're practical, but there's a creative streak you don't always let people see.",
+    "You can be very sociable, but you value time to yourself more than people realise.",
+    "You hold yourself to high standards. Higher than you hold anyone else, I suspect.",
+    "You like to understand how something works before you trust it. That's fine. Trust me anyway, just for a minute.",
+    "You've changed direction at least once when others expected you to stay put. And you were right to."
+  ];
+
+  // ---------- helpers ----------
+  function randInt(n) {
+    const buf = new Uint32Array(1), limit = Math.floor(0x100000000 / n) * n;
+    do { crypto.getRandomValues(buf); } while (buf[0] >= limit);
+    return buf[0] % n;
+  }
+  const pick = a => a[randInt(a.length)];
+  function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = randInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  async function sha256(text) {
+    const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(d), x => x.toString(16).padStart(2, "0")).join("");
+  }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const reduced = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const HIST_KEY = "precog.mentalist";
+  function history() { try { return JSON.parse(localStorage.getItem(HIST_KEY) || "[]"); } catch (e) { return []; } }
+  function saveHistory(h) { try { localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(-500))); } catch (e) {} }
+
+  // ---------- state ----------
+  let game = null, player = "", running = false;
+  const nameEl = $("name");
+  try { nameEl.value = localStorage.getItem("precog.name") || ""; } catch (e) {}
+  const updateStart = () => { $("startBtn").disabled = !nameEl.value.trim(); };
+  nameEl.addEventListener("input", updateStart);
+  nameEl.addEventListener("keydown", e => { if (e.key === "Enter" && nameEl.value.trim()) begin(); });
+  updateStart();
+  $("startBtn").addEventListener("click", begin);
+  $("againBtn").addEventListener("click", begin);
+  $("changeBtn").addEventListener("click", () => { show("startCard"); nameEl.focus(); nameEl.select(); });
+
+  function show(id) { ["startCard", "stageCard", "resultCard"].forEach(c => $(c).classList.toggle("hidden", c !== id)); }
+  function aura(on) {
+    const a = $("aura");
+    if (on) { a.style.setProperty("--aura", COLOURS[game.target].hex + "22"); a.style.opacity = 1; }
+    else { a.style.transition = "opacity 1s"; a.style.opacity = 0; setTimeout(() => a.style.transition = "", 1100); }
+  }
+
+  // ---------- the act ----------
+  async function begin() {
+    if (running) return;
+    player = nameEl.value.trim().slice(0, 40);
+    if (!player) return;
+    try { localStorage.setItem("precog.name", player); } catch (e) {}
+    running = true;
+
+    // The target is chosen first, at random. Everything the Mentalist says is built around it.
+    const target = KEYS[randInt(KEYS.length)];
+    const salt = Array.from(crypto.getRandomValues(new Uint8Array(6)), x => x.toString(16).padStart(2, "0")).join("");
+    const qs = shuffle(QUESTIONS).slice(0, 2);
+    game = { target, salt, said: [], seal: await sha256(salt + ":" + target) };
+    const C = COLOURS[target];
+
+    $("who").textContent = "Reading " + player;
+    $("script").innerHTML = ""; $("controls").innerHTML = "";
+    $("envWrap").classList.add("hidden"); $("swatches").classList.add("hidden");
+    show("stageCard");
+    await sleep(300);
+    aura(true);
+
+    await say(`Welcome, ${player}. Let's try something a little different.`);
+    await say("In a moment I'll ask you to think of a colour. Before that, I need to tune in to how your mind works. Answer honestly, and go with your first instinct.");
+    await ask(qs[0]);
+    await say(C.scene);
+    await ask({ q: C.sceneQ, opts: C.sceneOpts.map(o => [o, pick(SCENE_REPLY)]) });
+    await say(pick(READINGS));
+    await ask(qs[1]);
+    await say(C.settle);
+    await say("I'm going to make my prediction now, before you choose. I'll seal it, so neither of us can change it.", { auto: true });
+    await sealPrediction();
+    await say(C.nudge);
+    await say("Now. Think of a colour. Hold it clearly in your mind… and when you have it, choose it below.", { auto: true });
+    chooseColour();
+  }
+
+  // Types a line, then waits for Continue (or moves on by itself if auto).
+  async function say(text, { auto = false } = {}) {
+    game.said.push(text);
+    const box = $("script");
+    box.querySelectorAll(".line").forEach(l => l.classList.add("old"));
+    while (box.children.length > 4) box.removeChild(box.firstChild);
+    const el = document.createElement("div");
+    el.className = "line caret";
+    box.appendChild(el);
+    $("controls").innerHTML = "";
+    let skip = false;
+    const skipper = () => { skip = true; };
+    el.addEventListener("click", skipper);
+    if (reduced()) el.textContent = text;
+    else {
+      for (let i = 1; i <= text.length; i++) {
+        if (skip) { el.textContent = text; break; }
+        el.textContent = text.slice(0, i);
+        const ch = text[i - 1];
+        await sleep(ch === "." || ch === "?" || ch === "…" ? 260 : ch === "," ? 120 : 24);
+      }
+    }
+    el.classList.remove("caret");
+    if (auto) { await sleep(900); return; }
+    await buttons([["Continue", null]], true);
+  }
+
+  async function ask({ q, opts }) {
+    await sayQuestion(q);
+    const [answer, reply] = await buttons(opts);
+    const you = document.createElement("div");
+    you.className = "line you"; you.textContent = answer;
+    $("script").appendChild(you);
+    await sleep(400);
+    if (reply) await say(reply);
+  }
+  async function sayQuestion(q) { return say(q, { auto: true }); }
+
+  function buttons(opts, primary = false) {
+    return new Promise(resolve => {
+      const box = $("controls");
+      box.innerHTML = "";
+      opts.forEach(([label, reply], k) => {
+        const b = document.createElement("button");
+        b.className = (primary ? "btn-primary" : "opt") + " fade-in";
+        b.style.animationDelay = (k * 70) + "ms";
+        b.textContent = label;
+        b.addEventListener("click", () => { box.innerHTML = ""; resolve([label, reply]); });
+        box.appendChild(b);
+      });
+      if (primary) box.firstChild.focus({ preventScroll: true });
+    });
+  }
+
+  async function sealPrediction() {
+    const env = $("envelope");
+    env.className = "envelope";
+    $("predCard").style.removeProperty("--pred");
+    $("predCard").textContent = "";
+    $("sealShow").innerHTML = "Writing my prediction…";
+    $("envWrap").classList.remove("hidden");
+    await sleep(reduced() ? 300 : 1400);
+    env.classList.add("sealing");
+    $("sealShow").innerHTML = `Sealed. Fingerprint <span style="color:var(--accent)">${game.seal.slice(0, 16)}…</span>`;
+    await sleep(reduced() ? 300 : 1100);
+  }
+
+  function chooseColour() {
+    const box = $("swatches");
+    box.innerHTML = "";
+    shuffle(KEYS).forEach(k => {
+      const b = document.createElement("button");
+      b.className = "swatch fade-in";
+      b.style.setProperty("--c", COLOURS[k].hex);
+      b.dataset.c = k;
+      b.setAttribute("aria-label", COLOURS[k].label);
+      b.innerHTML = `<span>${COLOURS[k].label}</span>`;
+      b.addEventListener("click", () => chosen(k));
+      box.appendChild(b);
+    });
+    box.classList.remove("hidden");
+  }
+
+  async function chosen(k) {
+    if (game.choice) return;
+    game.choice = k;
+    document.querySelectorAll(".swatch").forEach(b => { b.disabled = true; b.classList.add(b.dataset.c === k ? "picked" : "dim"); });
+    const hit = k === game.target;
+    aura(false);
+    await sleep(500);
+
+    // Move the envelope to the result card and open it.
+    const T = COLOURS[game.target];
+    const wrap = $("envWrap2");
+    wrap.innerHTML = `<div class="envelope sealing" id="env2"><div class="card-in" style="--pred:${T.hex}">${T.label}</div><div class="wax">P</div></div>`;
+    $("verdict").textContent = "Let's open it…";
+    $("verdict").className = "verdict";
+    $("tally").innerHTML = ""; $("dots").innerHTML = "";
+    show("resultCard");
+    await sleep(reduced() ? 200 : 900);
+    $("env2").classList.add("open");
+    await sleep(reduced() ? 200 : 1300);
+
+    $("verdict").textContent = hit ? `${T.label}. I knew it.` : `I wrote ${T.label}. You chose ${COLOURS[k].label}.`;
+    $("verdict").classList.add(hit ? "hit" : "miss");
+
+    const h = history();
+    h.push({ name: player, at: new Date().toISOString(), target: game.target, choice: k });
+    saveHistory(h);
+    const mine = h.filter(r => r.name.toLowerCase() === player.toLowerCase());
+    const hits = mine.filter(r => r.target === r.choice).length;
+    const pct = Math.round(hits / mine.length * 100);
+    $("tally").innerHTML = hit
+      ? `Got you. My record reading <b>${esc(player)}</b>: <b>${hits} of ${mine.length}</b> (${pct}%). Chance alone would be about 17%.`
+      : `You resisted this time. My record reading <b>${esc(player)}</b>: <b>${hits} of ${mine.length}</b> (${pct}%). Chance alone would be about 17%.`;
+    $("dots").innerHTML = mine.slice(-30).map(r =>
+      `<span class="dot${r.target === r.choice ? " hit" : ""}" style="--c:${COLOURS[r.choice].hex}" title="${COLOURS[r.target].label} predicted, ${COLOURS[r.choice].label} chosen"></span>`).join("");
+
+    // Reveal the cues.
+    const cues = COLOURS[game.target].cues.slice().sort((a, b) => b.length - a.length).map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const re = new RegExp("\\b(" + cues.join("|") + ")\\b", "gi");
+    $("said").style.setProperty("--cue", T.hex);
+    $("said").innerHTML = game.said.map(s => `<p style="margin:0 0 8px;color:var(--text)">${esc(s).replace(re, "<mark>$&</mark>")}</p>`).join("");
+    document.querySelector("details.how").open = false;
+
+    const sealText = game.salt + ":" + game.target;
+    $("sealText").textContent = sealText;
+    $("sealHash").textContent = game.seal;
+    $("sealOk").innerHTML = (await sha256(sealText)) === game.seal ? `<span style="color:var(--hit)">✓ Verified.</span>` : `<span style="color:var(--miss)">✗ Mismatch.</span>`;
+    running = false;
+  }
+})();
+</script>
+</body>
+</html>
