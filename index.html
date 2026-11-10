@@ -6,7 +6,7 @@
 <title>PreCog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=202611101136">
+<link rel="stylesheet" href="style.css?v=202611101138">
 </head>
 <body>
 <div class="wrap">
@@ -46,6 +46,7 @@
       <div class="count" id="count"></div>
     </div>
     <div class="progress"><div id="bar"></div></div>
+    <div class="mystery-wrap"><div class="mystery" id="mystery" aria-label="Hidden card">?</div></div>
     <div class="prompt" id="prompt">Which shape is it?</div>
     <div class="choices" id="choices"></div>
     <div class="reveal" id="reveal"></div>
@@ -68,6 +69,7 @@
       <div class="sub" id="pctSub"></div>
       <div class="read" id="pctRead"></div>
     </div>
+    <div class="slots reveal-row" id="revealRow"></div>
     <div class="seq" id="seq"></div>
     <div class="note">Fingerprint check: the SHA-256 of <span class="hash" id="sealText"></span> is <span class="hash" id="sealHash"></span>, the same one shown during play.</div>
     <div class="actions" style="justify-content:center">
@@ -79,7 +81,7 @@
   </section>
 </div>
 
-<script src="common.js?v=202611101136"></script>
+<script src="common.js?v=202611101138"></script>
 <script>
 (() => {
   const ROUND_LENGTH = 7;
@@ -207,7 +209,18 @@
     scrambling = false;
   }
 
+  // The hidden card. Its symbol lives only in round.targets (script memory);
+  // nothing about it is written to the page until the round is over.
+  function dealCard() {
+    const m = $("mystery");
+    m.classList.remove("deal", "sealed");
+    void m.offsetWidth;
+    m.classList.add("deal");
+    m.title = `Card ${round.i + 1} of ${round.targets.length}`;
+  }
+
   function renderTrial() {
+    dealCard();
     const { i, targets, order } = round;
     $("count").textContent = `Shape ${i + 1} of ${targets.length}`;
     $("bar").style.width = (i / targets.length * 100) + "%";
@@ -235,6 +248,7 @@
       b.classList.add(b.dataset.shape === s ? "picked" : "dim");
     });
     $("prompt").textContent = `Locked in: ${LABEL[s]}`;
+    $("mystery").classList.add("sealed");
     const pip = document.createElement("div");
     pip.className = "pip";
     pip.title = `${round.i + 1}: you chose ${LABEL[s]}`;
@@ -252,6 +266,27 @@
     renderTrial();
   }
 
+  async function revealCards() {
+    const row = $("revealRow");
+    row.innerHTML = "";
+    const cards = round.targets.map(() => {
+      const c = document.createElement("div");
+      c.className = "slot locked";
+      row.appendChild(c);
+      return c;
+    });
+    const reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    await sleep(reduced ? 50 : 500);
+    for (let k = 0; k < cards.length; k++) {
+      const hit = round.targets[k] === round.guesses[k];
+      cards[k].innerHTML = shapeSvg(round.targets[k]);
+      cards[k].classList.remove("locked");
+      cards[k].classList.add(hit ? "hit" : "miss");
+      cards[k].title = `Card ${k + 1}: ${LABEL[round.targets[k]]}${hit ? " (you got it)" : ", you chose " + LABEL[round.guesses[k]]}`;
+      await sleep(reduced ? 20 : 260);
+    }
+  }
+
   async function finish() {
     const n = round.targets.length;
     const hits = round.targets.reduce((a, t, i) => a + (t === round.guesses[i] ? 1 : 0), 0);
@@ -266,6 +301,7 @@
       rows += `<div>${i + 1}</div><div>${shapeSvg(g)}${LABEL[g]}</div><div>${shapeSvg(t)}${LABEL[t]}</div><div style="color:${ok ? "var(--hit)" : "var(--miss)"}">${ok ? "✓" : "✗"}</div>`;
     });
     $("seq").innerHTML = rows;
+    revealCards();
     $("sealText").textContent = round.sealText;
     $("sealHash").textContent = round.seal;
     show("resultCard");
