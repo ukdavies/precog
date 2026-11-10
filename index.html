@@ -99,8 +99,8 @@
 
   /* Scramble */
   .scramble-title { text-align: center; font-family: "Cormorant Garamond", Georgia, serif; font-size: 28px; font-weight: 600; color: var(--accent); margin-bottom: 22px; }
-  .slots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; }
-  @media (max-width: 560px) { .slots { grid-template-columns: repeat(5, 1fr); } }
+  .slots { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; max-width: 560px; margin: 0 auto; }
+  @media (max-width: 560px) { .slots { gap: 5px; } }
   .slot {
     aspect-ratio: 3 / 4; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line);
     display: grid; place-items: center; position: relative; overflow: hidden;
@@ -173,7 +173,7 @@
     <div class="actions">
       <button class="btn-primary" id="startBtn" disabled>Begin</button>
     </div>
-    <div class="hint">Each round is 10 shapes. With four to choose from, pure guessing averages 25%. The whole sequence is drawn at random when you press Begin, and sealed with a fingerprint you can check at the end.</div>
+    <div class="hint">Each round is 7 shapes. With four to choose from, pure guessing averages 25%. The whole sequence is drawn at random when you press Begin, and sealed with a fingerprint you can check at the end.</div>
   </section>
 
   <!-- Scramble -->
@@ -234,7 +234,7 @@
 
 <script>
 (() => {
-  const ROUND_LENGTH = 10;
+  const ROUND_LENGTH = 7;
   const SHAPES = ["square", "circle", "triangle", "diamond"];
   const LABEL = { square: "Square", circle: "Circle", triangle: "Triangle", diamond: "Diamond" };
   const CODE = { square: "S", circle: "C", triangle: "T", diamond: "D" };
